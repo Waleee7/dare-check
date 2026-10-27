@@ -25,6 +25,11 @@ const server = http.createServer((req, res) => {
   if (req.url === '/to-ip') return go(`http://127.0.0.1:${port}/final`);
   if (req.url === '/big') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('x'.repeat(1_000_000)); }
   if (req.url === '/slow') return;   // never answers
+  if (req.url === '/drip') {         // headers at once, then one byte every 100 ms forever
+    res.writeHead(200, { 'content-type': 'text/html', 'x-frame-options': 'DENY' });
+    const t = setInterval(() => res.write('.'), 100);
+    return res.on('close', () => clearInterval(t));
+  }
   res.writeHead(404); res.end();
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -64,6 +69,15 @@ test('bodies are capped and slow servers time out', async () => {
   const big = await get(`http://first.test:${port}/big`, { lookup: toLocal, maxBytes: 50_000 });
   assert.ok(big.body.length <= 50_000 + 65_536, `body ${big.body.length}`);
   await assert.rejects(get(`http://first.test:${port}/slow`, { lookup: toLocal, timeout: 300 }), { code: 'ETIMEDOUT' });
+});
+
+test('a server dripping bytes cannot outlast the hard per-request cap', async () => {
+  const t0 = Date.now();
+  const r = await get(`http://first.test:${port}/drip`, { lookup: toLocal, timeout: 600 });
+  const took = Date.now() - t0;
+  assert.ok(took < 1500, `took ${took} ms`);
+  assert.equal(r.headers['x-frame-options'], 'DENY', 'the headers that arrived are kept');
+  assert.ok(r.body.length > 0 && r.body.length < 20, `kept ${r.body.length} bytes`);
 });
 
 test('a self-signed certificate is reported as untrusted, and still read when asked', async (t) => {
