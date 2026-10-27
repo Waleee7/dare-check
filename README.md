@@ -40,7 +40,7 @@ flowchart LR
 ## Run it
 
 ```bash
-npm test                    # 38 unit and integration tests, no network needed
+npm test                    # 39 unit and integration tests, no network needed
 PORT=5190 node server.js    # http://127.0.0.1:5190
 node tests/ui.check.cjs     # 23 browser checks against the running server (needs Playwright)
 ```
@@ -49,7 +49,7 @@ Requires Node 20+. No dependencies.
 
 ## Verified
 
-- **38 tests pass:** grading rules, SPF/DMARC parsing, platform detection, the SSRF guard (40 address cases, including cloud-metadata and IPv6-embedded forms), the redirect walker against real local servers, a real self-signed certificate, the rate limiter, and a check that the page's grade table matches the engine.
+- **39 tests pass:** grading rules, SPF/DMARC parsing, platform detection, the SSRF guard (40 address cases, including cloud-metadata and IPv6-embedded forms), the redirect walker against real local servers (including a server that drips one byte at a time), a real self-signed certificate, the rate limiter, and a check that the page's grade table matches the engine.
 - **23 browser checks pass:** the sample report, copy buttons, error states, shared links, print view, reduced motion, phone layout with no sideways scroll, zero console or CSP errors, and a hostile report whose fields carry `<script>` and `onerror` payloads, which render as harmless text.
 - **Lighthouse (mobile and desktop):** Accessibility 100, Best Practices 100. SEO is held down only by the pre-launch `noindex`.
 
