@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DARE CHECK: is your website safe?</title>
+<meta name="description" content="A free 10-second safety inspection for small-business websites: HTTPS, security headers, cookies and email-spoofing records, with plain-English fixes.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#090A0F">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#url">Skip to the address box</a>
+
+<header class="bar">
+  <a class="mark" href="/">DARE <b>CHECK</b></a>
+  <span class="stamp stamp--hollow bar-stamp">FREE · NO SIGN-UP</span>
+  <nav class="bar-nav" aria-label="Page">
+    <a href="#how">How it works</a>
+    <button type="button" data-sample>Sample report</button>
+    <a href="#about">By Josh Dare</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="title">
+    <div class="hero-main">
+      <p class="kicker">001 / Website safety inspection</p>
+      <h1 id="title">Is your<br>website<br>safe?</h1>
+      <form id="scan" class="scan" novalidate>
+        <label class="field-label" for="url">Website address</label>
+        <div class="field">
+          <input id="url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="yourbusiness.com" required aria-describedby="hint">
+          <button type="submit">Inspect <span aria-hidden="true">→</span></button>
+        </div>
+        <p id="hint" class="hint">14 checks · about 10 seconds · free · results not saved</p>
+      </form>
+    </div>
+    <aside class="hero-side" aria-label="What gets checked">
+      <table class="ledger">
+        <caption>What gets checked</caption>
+        <tbody>
+          <tr><th scope="row">01</th><td>HTTPS, the redirect and your certificate</td></tr>
+          <tr><th scope="row">02</th><td>Browser protections against clickjacking and injected code</td></tr>
+          <tr><th scope="row">03</th><td>Cookie flags and leaked software versions</td></tr>
+          <tr><th scope="row">04</th><td>Email spoofing records (SPF and DMARC)</td></tr>
+        </tbody>
+      </table>
+      <div class="readout" data-readout hidden></div>
+      <div class="dont">
+        <p class="field-label">What we don't do</p>
+        <p>No hacking, no logins, no poking at hidden files. One visit to your homepage and a look at your public DNS records: the same things any browser can see.</p>
+      </div>
+    </aside>
+  </section>
+
+  <section id="report" class="report" hidden tabindex="-1" aria-labelledby="report-title"></section>
+  <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+
+  <section id="how" class="how" aria-labelledby="how-title">
+    <div class="rule"><h2 id="how-title">002 / How the grade works</h2><span>14 checks · 100 points</span></div>
+    <p class="how-intro">Each check is worth points. A pass earns all of them, a warning half, a fail none. Checks that can't run don't count. 90 or more is an A, 80 a B, 65 a C, 50 a D. A site without working HTTPS gets an F no matter what, because everything else depends on it.</p>
+    <div class="table-wrap">
+      <table class="methods">
+        <thead><tr><th scope="col">Check</th><th scope="col">Passes when</th><th scope="col" class="num">Points</th></tr></thead>
+        <tbody>
+          <tr data-check="https"><th scope="row">Secure connection (HTTPS)</th><td>The homepage loads over https with a trusted certificate.</td><td class="num">18</td></tr>
+          <tr data-check="redirect"><th scope="row">Sends visitors to the secure version</th><td>http:// forwards to https://, or plain http is switched off.</td><td class="num">8</td></tr>
+          <tr data-check="cert"><th scope="row">Security certificate is current</th><td>The certificate has at least 21 days left.</td><td class="num">10</td></tr>
+          <tr data-check="hsts"><th scope="row">Browsers remember to use HTTPS (HSTS)</th><td>Strict-Transport-Security is set for 180 days or more.</td><td class="num">8</td></tr>
+          <tr data-check="mixed"><th scope="row">No insecure files on the secure page</th><td>No scripts, styles or images load over http://.</td><td class="num">6</td></tr>
+          <tr data-check="framing"><th scope="row">Can't be hidden inside another site</th><td>frame-ancestors or X-Frame-Options blocks framing.</td><td class="num">6</td></tr>
+          <tr data-check="nosniff"><th scope="row">Files can't pretend to be scripts (nosniff)</th><td>X-Content-Type-Options is nosniff.</td><td class="num">4</td></tr>
+          <tr data-check="csp"><th scope="row">Content Security Policy</th><td>A policy limits scripts without allowing 'unsafe-inline'.</td><td class="num">6</td></tr>
+          <tr data-check="referrer"><th scope="row">Page addresses stay private (Referrer-Policy)</th><td>Unset (browsers default safely) or set to a strict value.</td><td class="num">2</td></tr>
+          <tr data-check="permissions"><th scope="row">Camera, mic and location locked (Permissions-Policy)</th><td>A Permissions-Policy header is set.</td><td class="num">2</td></tr>
+          <tr data-check="cookies"><th scope="row">Cookies are protected</th><td>Homepage cookies carry Secure and SameSite, plus HttpOnly for logins.</td><td class="num">6</td></tr>
+          <tr data-check="leaks"><th scope="row">Doesn't advertise software versions</th><td>No version numbers in the headers or the page.</td><td class="num">4</td></tr>
+          <tr data-check="spf"><th scope="row">Email sender list (SPF)</th><td>One SPF record that ends in ~all or -all.</td><td class="num">9</td></tr>
+          <tr data-check="dmarc"><th scope="row">Email spoofing protection (DMARC)</th><td>A DMARC record with p=quarantine or p=reject.</td><td class="num">11</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="about" class="about" aria-labelledby="about-title">
+    <div class="rule"><h2 id="about-title">003 / Who made this</h2><span>Atlanta</span></div>
+    <div class="about-grid">
+      <p>I'm Josh Dare. I build and fix websites for small businesses, and I made DARE CHECK because most owners never get told these basics. If your report has red on it, send it to me and I'll tell you what it takes to fix.</p>
+      <a class="btn btn--signal" data-email href="#about">Email Josh <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>DARE CHECK looks at the basics that stop the most common attacks. It isn't a full security audit.</p>
+  <p>Results are never saved. Share links keep the address after the #, which never reaches the server.</p>
+</footer>
+</body>
+</html>

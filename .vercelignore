@@ -1,0 +1,8 @@
+tests
+docs
+scripts
+server.js
+README.md
+.env*
+.vercel
+.DS_Store

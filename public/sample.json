@@ -1,0 +1,205 @@
+{
+ "ok": true,
+ "sample": true,
+ "host": "www.joesbakery.example",
+ "domain": "joesbakery.example",
+ "finalUrl": "https://www.joesbakery.example/",
+ "fetchedAt": "2026-10-27T12:00:00.000Z",
+ "platform": {
+  "id": "apache",
+  "name": "Apache"
+ },
+ "grade": "C",
+ "score": 70,
+ "capped": false,
+ "counts": {
+  "pass": 6,
+  "warn": 7,
+  "fail": 1,
+  "skip": 0
+ },
+ "checks": [
+  {
+   "id": "https",
+   "group": "connection",
+   "title": "Secure connection (HTTPS)",
+   "why": "Without it, anyone on the same Wi-Fi can read or change what your customers see and type.",
+   "weight": 18,
+   "status": "pass",
+   "saw": "Loads over HTTPS (status 200)"
+  },
+  {
+   "id": "redirect",
+   "group": "connection",
+   "title": "Sends visitors to the secure version",
+   "why": "People who type your address without https:// should still land on the secure site.",
+   "weight": 8,
+   "status": "pass",
+   "saw": "http://www.joesbakery.example/ → 301 → https://www.joesbakery.example/"
+  },
+  {
+   "id": "cert",
+   "group": "connection",
+   "title": "Security certificate is current",
+   "why": "When it expires, browsers show a full-page warning and most visitors leave.",
+   "weight": 10,
+   "status": "pass",
+   "saw": "Expires 20 Dec 2026 · 54 days left · issued by Let's Encrypt"
+  },
+  {
+   "id": "hsts",
+   "group": "connection",
+   "title": "Browsers remember to use HTTPS (HSTS)",
+   "why": "Stops a trick on public Wi-Fi that keeps visitors on the insecure version of your site.",
+   "weight": 8,
+   "status": "warn",
+   "saw": "Not set"
+  },
+  {
+   "id": "mixed",
+   "group": "connection",
+   "title": "No insecure files on the secure page",
+   "why": "Scripts or images loaded over plain http can be swapped by an attacker, and browsers block some of them.",
+   "weight": 6,
+   "status": "warn",
+   "saw": "1 file over http://: http://www.joesbakery.example/wp-content/uploads/2021/04/cake.jpg"
+  },
+  {
+   "id": "framing",
+   "group": "browser",
+   "title": "Can't be hidden inside another site",
+   "why": "Stops scam pages from loading your site invisibly and tricking people into clicking your buttons.",
+   "weight": 6,
+   "status": "warn",
+   "saw": "Not set"
+  },
+  {
+   "id": "nosniff",
+   "group": "browser",
+   "title": "Files can't pretend to be scripts (nosniff)",
+   "why": "Stops browsers from running a file as code when it claims to be something else.",
+   "weight": 4,
+   "status": "pass",
+   "saw": "X-Content-Type-Options: nosniff"
+  },
+  {
+   "id": "csp",
+   "group": "browser",
+   "title": "Content Security Policy",
+   "why": "A list of where your site's scripts may come from. If bad code sneaks in, the browser refuses to run it.",
+   "weight": 6,
+   "status": "warn",
+   "saw": "Not set"
+  },
+  {
+   "id": "referrer",
+   "group": "browser",
+   "title": "Page addresses stay private (Referrer-Policy)",
+   "why": "Controls how much of your page address is shared when a visitor clicks a link to another site.",
+   "weight": 2,
+   "status": "pass",
+   "saw": "Not set, so browsers use their safe default (strict-origin-when-cross-origin)."
+  },
+  {
+   "id": "permissions",
+   "group": "browser",
+   "title": "Camera, mic and location locked (Permissions-Policy)",
+   "why": "Makes sure nothing embedded in your site can ask visitors for their camera, microphone or location.",
+   "weight": 2,
+   "status": "warn",
+   "saw": "Not set"
+  },
+  {
+   "id": "cookies",
+   "group": "browser",
+   "title": "Cookies are protected",
+   "why": "Cookies can hold logins and carts. The Secure, HttpOnly and SameSite flags keep them from being stolen.",
+   "weight": 6,
+   "status": "warn",
+   "saw": "PHPSESSID: missing Secure, SameSite, HttpOnly"
+  },
+  {
+   "id": "leaks",
+   "group": "browser",
+   "title": "Doesn't advertise software versions",
+   "why": "Showing exact versions (like 'Apache 2.4.41') tells attackers which known holes to try.",
+   "weight": 4,
+   "status": "warn",
+   "saw": "Server: Apache/2.4.41 (Ubuntu) · X-Powered-By: PHP/7.4.3 · page says it was made with WordPress 6.4.2"
+  },
+  {
+   "id": "spf",
+   "group": "email",
+   "title": "Email sender list (SPF)",
+   "why": "Tells inboxes which servers may send email as your domain. Without it, scammers can send fake invoices that look like yours.",
+   "weight": 9,
+   "status": "pass",
+   "saw": "v=spf1 include:_spf.google.com ~all"
+  },
+  {
+   "id": "dmarc",
+   "group": "email",
+   "title": "Email spoofing protection (DMARC)",
+   "why": "Tells inboxes what to do with fake email that uses your domain: let it in, send it to junk, or reject it.",
+   "weight": 11,
+   "status": "fail",
+   "saw": "No DMARC record at _dmarc.joesbakery.example."
+  }
+ ],
+ "fixes": [
+  {
+   "title": "Add the missing security headers",
+   "text": "Add these headers to every page. The Content-Security-Policy line is a safe starter that can't break your scripts; a stricter one needs testing on your site first.",
+   "file": ".htaccess",
+   "code": "<IfModule mod_headers.c>\n  Header always set Strict-Transport-Security \"max-age=31536000\"\n  Header always set X-Frame-Options \"SAMEORIGIN\"\n  Header always set Content-Security-Policy \"upgrade-insecure-requests; frame-ancestors 'self'\"\n  Header always set Permissions-Policy \"camera=(), microphone=(), geolocation=()\"\n</IfModule>",
+   "checks": [
+    "hsts",
+    "framing",
+    "csp",
+    "permissions"
+   ],
+   "points": 11
+  },
+  {
+   "title": "Add a DMARC record",
+   "text": "Add this TXT record. It sends fake email that uses your domain to junk. If you send a lot of email, start with p=none for two weeks, then switch to quarantine.",
+   "file": "TXT record · name: _dmarc (_dmarc.joesbakery.example)",
+   "code": "v=DMARC1; p=quarantine",
+   "checks": [
+    "dmarc"
+   ],
+   "points": 11
+  },
+  {
+   "title": "Load every file over https",
+   "text": "Change these addresses from http:// to https:// in your site's code or page builder:",
+   "file": "insecure files",
+   "code": "http://www.joesbakery.example/wp-content/uploads/2021/04/cake.jpg",
+   "checks": [
+    "mixed"
+   ],
+   "points": 3
+  },
+  {
+   "title": "Flag your cookies",
+   "text": "Ask whoever set up your site (or check your plugin settings) to add the missing flags. Secure, HttpOnly and SameSite=Lax suit most cookies.",
+   "file": "cookies to fix",
+   "code": "PHPSESSID: add Secure, SameSite, HttpOnly",
+   "checks": [
+    "cookies"
+   ],
+   "points": 3
+  },
+  {
+   "title": "Hide version numbers (and keep that software updated)",
+   "text": "Remove the WordPress version tag with a security plugin, or add this to your theme's functions.php. Then keep WordPress and its plugins updated.",
+   "file": "functions.php",
+   "code": "remove_action('wp_head', 'wp_generator');",
+   "checks": [
+    "leaks"
+   ],
+   "points": 2
+  }
+ ],
+ "notes": []
+}
