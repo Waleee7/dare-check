@@ -8,13 +8,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { get, fetchChain, emailRecords } from '../lib/inspect.js';
+import { get, fetchChain, emailRecords, inspect, politeFetch } from '../lib/inspect.js';
 
 const toLocal = (host, opts, cb) => {
   if (typeof opts === 'function') { cb = opts; opts = {}; }
   if (opts.all) cb(null, [{ address: '127.0.0.1', family: 4 }]); else cb(null, '127.0.0.1', 4);
 };
 
+let busyHits = 0;
 const server = http.createServer((req, res) => {
   const go = (to, code = 301) => { res.writeHead(code, { location: to }); res.end(); };
   if (req.url === '/') return go('/two');
@@ -25,6 +26,8 @@ const server = http.createServer((req, res) => {
   if (req.url === '/to-ip') return go(`http://127.0.0.1:${port}/final`);
   if (req.url === '/big') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('x'.repeat(1_000_000)); }
   if (req.url === '/slow') return;   // never answers
+  if (req.url === '/busy') { busyHits++; res.writeHead(busyHits === 1 ? 429 : 200); return res.end('x'); }
+  if (req.url === '/always-busy') { res.writeHead(429); return res.end('x'); }
   if (req.url === '/drip') {         // headers at once, then one byte every 100 ms forever
     res.writeHead(200, { 'content-type': 'text/html', 'x-frame-options': 'DENY' });
     const t = setInterval(() => res.write('.'), 100);
@@ -112,7 +115,73 @@ test('email records: SPF filtered from other TXT, DMARC found on the parent doma
     resolveMx: async () => [{ exchange: 'ALT1.ASPMX.L.GOOGLE.COM', priority: 5 }, { exchange: 'aspmx.l.google.com', priority: 1 }],
   };
   const r = await emailRecords('shop.example.com', fake);
-  assert.deepEqual(r, { ok: true, spf: ['v=spf1 include:_spf.google.com ~all'], dmarc: ['v=DMARC1; p=reject'], dmarcAt: 'example.com', mx: ['aspmx.l.google.com', 'alt1.aspmx.l.google.com'] });
+  assert.deepEqual(r, { ok: true, org: 'example.com', spf: ['v=spf1 include:_spf.google.com ~all'], spfAt: 'shop.example.com', dmarc: ['v=DMARC1; p=reject'], dmarcAt: 'example.com', mx: ['aspmx.l.google.com', 'alt1.aspmx.l.google.com'] });
   const broken = await emailRecords('x.example.com', { resolveTxt: async () => { throw Object.assign(new Error('x'), { code: 'ESERVFAIL' }); }, resolveMx: async () => [] });
   assert.deepEqual(broken, { ok: false, error: 'ESERVFAIL' });
+});
+
+test('email records: a subdomain borrows the main domain\'s SPF and MX instead of failing unfairly', async () => {
+  const txt = { 'example.com': [['v=spf1 include:_spf.google.com ~all']] };
+  const mx = { 'example.com': [{ exchange: 'aspmx.l.google.com', priority: 1 }] };
+  const none = () => Object.assign(new Error('none'), { code: 'ENODATA' });
+  const fake = {
+    resolveTxt: async (n) => { if (txt[n]) return txt[n]; throw none(); },
+    resolveMx: async (n) => { if (mx[n]) return mx[n]; throw none(); },
+  };
+  const r = await emailRecords('blog.example.com', fake);
+  assert.deepEqual(r.spf, ['v=spf1 include:_spf.google.com ~all']);
+  assert.equal(r.spfAt, 'example.com');
+  assert.deepEqual(r.mx, ['aspmx.l.google.com']);
+  assert.equal(r.org, 'example.com');
+});
+
+test('inspect reports every step exactly once and never reaches the network with stubs in place', async () => {
+  const nowhere = (host, o, cb) => { if (typeof o === 'function') { cb = o; o = {}; } cb(Object.assign(new Error('no'), { code: 'ENOTFOUND' })); };
+  const none = async () => { throw Object.assign(new Error('none'), { code: 'ENODATA' }); };
+  const steps = [];
+  const r = await inspect({ host: 'nowhere.example.com', domain: 'nowhere.example.com' }, {
+    lookup: nowhere,
+    resolver: { resolveTxt: none, resolveMx: none },
+    onStep: (s) => steps.push(s.id),
+    lookups: {
+      rep: async () => ({ cloudflare: 'clean', quad9: 'unknown' }),
+      record: async () => ({ ok: false, error: 'HTTP 404' }),
+      wp: async () => null,
+      dkim: async () => ({ ok: true, found: [] }),
+    },
+  });
+  assert.deepEqual([...steps].sort(), ['blocklist', 'cert', 'dkim', 'domain', 'email', 'http', 'https', 'software', 'www']);
+  assert.equal(r.https.ok, false);
+  assert.equal(r.https.error, 'ENOTFOUND');
+  assert.equal(r.www.applies, false, 'a subdomain has no www spelling to test');
+  assert.equal(r.rep.quad9, 'unknown');
+  assert.equal(r.wp, null);
+});
+
+test('a thrown error in the step callback cannot stop a scan', async () => {
+  const nowhere = (host, o, cb) => { if (typeof o === 'function') { cb = o; o = {}; } cb(Object.assign(new Error('no'), { code: 'ENOTFOUND' })); };
+  const none = async () => { throw Object.assign(new Error('none'), { code: 'ENODATA' }); };
+  const r = await inspect({ host: 'a.example.com', domain: 'a.example.com' }, {
+    lookup: nowhere, resolver: { resolveTxt: none, resolveMx: none }, onStep: () => { throw new Error('socket closed'); },
+    lookups: { rep: async () => ({ cloudflare: 'clean', quad9: 'clean' }), record: async () => ({ ok: false }), wp: async () => null, dkim: async () => ({ ok: true, found: [] }) },
+  });
+  assert.equal(r.host, 'a.example.com');
+});
+
+test('a site that says "too busy" gets one more polite try', async () => {
+  busyHits = 0;
+  const ok = await politeFetch(`http://first.test:${port}/busy`, { ...opts, retryAfter: 20 });
+  assert.equal(ok.status, 200);
+  assert.equal(busyHits, 2);
+  const still = await politeFetch(`http://first.test:${port}/always-busy`, { ...opts, retryAfter: 20 });
+  assert.equal(still.status, 429, 'then we believe it');
+  const fine = await politeFetch(`http://first.test:${port}/final`, { ...opts, retryAfter: 20 });
+  assert.equal(fine.status, 200);
+});
+
+test('no retry when there is no time left for one', async () => {
+  busyHits = 0;
+  const r = await politeFetch(`http://first.test:${port}/busy`, { ...opts, retryAfter: 5000, deadline: Date.now() + 1000 });
+  assert.equal(r.status, 429);
+  assert.equal(busyHits, 1);
 });

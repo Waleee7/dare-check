@@ -1,0 +1,30 @@
+name: DARE CHECK
+description: Grade a website's security basics from A to F and fail the build if it drops below the grade you set.
+branding:
+  icon: shield
+  color: green
+inputs:
+  url:
+    description: The website address to check, such as example.com
+    required: true
+  fail-under:
+    description: Fail the step if the grade is below this (A, B, C, D or F)
+    required: false
+    default: C
+outputs:
+  grade:
+    description: The letter grade
+    value: ${{ steps.check.outputs.grade }}
+  score:
+    description: The score out of 100
+    value: ${{ steps.check.outputs.score }}
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      env:
+        DC_URL: ${{ inputs.url }}
+        DC_FAIL_UNDER: ${{ inputs.fail-under }}
+        DC_BIN: ${{ github.action_path }}/bin/dare-check.js
+      run: node "$DC_BIN" "$DC_URL" --fail-under "$DC_FAIL_UNDER"

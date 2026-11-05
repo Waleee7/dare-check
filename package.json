@@ -1,12 +1,25 @@
 {
   "name": "dare-check",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "A free safety grade for small-business websites: HTTPS, security headers, cookies and email-spoofing records, explained in plain English.",
+  "description": "A free safety grade for small-business websites: HTTPS, security headers, cookies, email spoofing, blocklists and domain expiry, explained in plain English. Website, CLI, GitHub Action and MCP server.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "check": "node bin/dare-check.js",
+    "mcp": "node bin/dare-check-mcp.js",
+    "truth": "node scripts/truth.js"
+  },
+  "bin": {
+    "dare-check": "bin/dare-check.js",
+    "dare-check-mcp": "bin/dare-check-mcp.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Waleee7/dare-check"
   }
 }

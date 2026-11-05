@@ -1,7 +1,8 @@
 {
   "outputDirectory": "public",
-  "functions": { "api/scan.js": { "maxDuration": 30 } },
+  "functions": { "api/*.js": { "maxDuration": 30 } },
   "headers": [
+    { "source": "/api/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
     {
       "source": "/(.*)",
       "headers": [

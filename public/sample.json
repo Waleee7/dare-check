@@ -9,14 +9,64 @@
   "id": "apache",
   "name": "Apache"
  },
+ "builder": {
+  "id": "wordpress",
+  "name": "WordPress"
+ },
+ "registrar": "GoDaddy.com, LLC",
+ "dates": {
+  "cert": "2026-12-20T12:00:00.000Z",
+  "certIssuer": "Let's Encrypt",
+  "domain": "2027-02-14T00:00:00.000Z"
+ },
+ "spoof": {
+  "domain": "joesbakery.example"
+ },
  "grade": "C",
  "score": 70,
  "capped": false,
  "counts": {
-  "pass": 6,
+  "pass": 11,
   "warn": 7,
-  "fail": 1,
-  "skip": 0
+  "fail": 2,
+  "skip": 0,
+  "info": 2
+ },
+ "potential": {
+  "score": 97,
+  "grade": "A"
+ },
+ "caveat": null,
+ "summary": {
+  "headline": "Some real gaps worth fixing.",
+  "risks": [
+   {
+    "id": "software",
+    "status": "fail",
+    "text": "Your site runs a WordPress version that WordPress itself lists as insecure."
+   },
+   {
+    "id": "dmarc",
+    "status": "fail",
+    "text": "Nothing stops scammers from sending email that looks like it came from you."
+   },
+   {
+    "id": "hsts",
+    "status": "warn",
+    "text": "Browsers aren't told to insist on your secure site, which leaves a gap on public Wi-Fi."
+   }
+  ],
+  "good": [],
+  "next": {
+   "title": "Add a DMARC record",
+   "points": 9,
+   "time": "about 5 minutes",
+   "who": "you, at your domain registrar"
+  },
+  "potential": {
+   "score": 97,
+   "grade": "A"
+  }
  },
  "checks": [
   {
@@ -24,7 +74,7 @@
    "group": "connection",
    "title": "Secure connection (HTTPS)",
    "why": "Without it, anyone on the same Wi-Fi can read or change what your customers see and type.",
-   "weight": 18,
+   "weight": 12,
    "status": "pass",
    "saw": "Loads over HTTPS (status 200)"
   },
@@ -33,7 +83,7 @@
    "group": "connection",
    "title": "Sends visitors to the secure version",
    "why": "People who type your address without https:// should still land on the secure site.",
-   "weight": 8,
+   "weight": 6,
    "status": "pass",
    "saw": "http://www.joesbakery.example/ → 301 → https://www.joesbakery.example/"
   },
@@ -42,7 +92,7 @@
    "group": "connection",
    "title": "Security certificate is current",
    "why": "When it expires, browsers show a full-page warning and most visitors leave.",
-   "weight": 10,
+   "weight": 7,
    "status": "pass",
    "saw": "Expires 20 Dec 2026 · 54 days left · issued by Let's Encrypt"
   },
@@ -60,9 +110,27 @@
    "group": "connection",
    "title": "No insecure files on the secure page",
    "why": "Scripts or images loaded over plain http can be swapped by an attacker, and browsers block some of them.",
-   "weight": 6,
+   "weight": 4,
    "status": "warn",
    "saw": "1 file over http://: http://www.joesbakery.example/wp-content/uploads/2021/04/cake.jpg"
+  },
+  {
+   "id": "forms",
+   "group": "connection",
+   "title": "Forms send securely",
+   "why": "Anything typed into a form that posts over plain http can be read along the way, and browsers warn people before sending it.",
+   "weight": 3,
+   "status": "pass",
+   "saw": "1 form, all sending over https."
+  },
+  {
+   "id": "www",
+   "group": "connection",
+   "title": "The www address works too",
+   "why": "Plenty of people still type www. If that version is broken or shows a security warning, they think your whole site is.",
+   "weight": 2,
+   "status": "pass",
+   "saw": "joesbakery.example works too."
   },
   {
    "id": "framing",
@@ -78,7 +146,7 @@
    "group": "browser",
    "title": "Files can't pretend to be scripts (nosniff)",
    "why": "Stops browsers from running a file as code when it claims to be something else.",
-   "weight": 4,
+   "weight": 3,
    "status": "pass",
    "saw": "X-Content-Type-Options: nosniff"
   },
@@ -96,7 +164,7 @@
    "group": "browser",
    "title": "Page addresses stay private (Referrer-Policy)",
    "why": "Controls how much of your page address is shared when a visitor clicks a link to another site.",
-   "weight": 2,
+   "weight": 1,
    "status": "pass",
    "saw": "Not set, so browsers use their safe default (strict-origin-when-cross-origin)."
   },
@@ -114,7 +182,7 @@
    "group": "browser",
    "title": "Cookies are protected",
    "why": "Cookies can hold logins and carts. The Secure, HttpOnly and SameSite flags keep them from being stolen.",
-   "weight": 6,
+   "weight": 3,
    "status": "warn",
    "saw": "PHPSESSID: missing Secure, SameSite, HttpOnly"
   },
@@ -123,7 +191,7 @@
    "group": "browser",
    "title": "Doesn't advertise software versions",
    "why": "Showing exact versions (like 'Apache 2.4.41') tells attackers which known holes to try.",
-   "weight": 4,
+   "weight": 3,
    "status": "warn",
    "saw": "Server: Apache/2.4.41 (Ubuntu) · X-Powered-By: PHP/7.4.3 · page says it was made with WordPress 6.4.2"
   },
@@ -132,7 +200,7 @@
    "group": "email",
    "title": "Email sender list (SPF)",
    "why": "Tells inboxes which servers may send email as your domain. Without it, scammers can send fake invoices that look like yours.",
-   "weight": 9,
+   "weight": 7,
    "status": "pass",
    "saw": "v=spf1 include:_spf.google.com ~all"
   },
@@ -141,15 +209,83 @@
    "group": "email",
    "title": "Email spoofing protection (DMARC)",
    "why": "Tells inboxes what to do with fake email that uses your domain: let it in, send it to junk, or reject it.",
-   "weight": 11,
+   "weight": 9,
    "status": "fail",
    "saw": "No DMARC record at _dmarc.joesbakery.example."
+  },
+  {
+   "id": "dkim",
+   "group": "email",
+   "title": "Email signing (DKIM)",
+   "why": "A signature that proves your email really came from you. Not scored, because DKIM keys can be named anything and we can only look in the usual places.",
+   "weight": 0,
+   "status": "info",
+   "saw": "Found a signing key at google._domainkey.joesbakery.example."
+  },
+  {
+   "id": "blocklist",
+   "group": "trust",
+   "title": "Not flagged as dangerous",
+   "why": "Security filters block sites known for malware or scams. A hacked site can end up there without its owner ever finding out.",
+   "weight": 6,
+   "status": "pass",
+   "saw": "Not blocked by Cloudflare or Quad9's malware filters."
+  },
+  {
+   "id": "software",
+   "group": "trust",
+   "title": "No known-risky software versions",
+   "why": "Old versions of WordPress and common code libraries have published security holes that attackers scan for.",
+   "weight": 5,
+   "status": "fail",
+   "saw": "WordPress 6.4.2: WordPress lists this version as insecure · jQuery 1.12.4 (cross-site scripting holes, CVE-2020-11022 and CVE-2020-11023)"
+  },
+  {
+   "id": "renewal",
+   "group": "trust",
+   "title": "Domain name isn't about to expire",
+   "why": "If your domain lapses, your site and email stop working, and someone else can buy the name.",
+   "weight": 5,
+   "status": "pass",
+   "saw": "Paid through 14 Feb 2027 · 109 days left · registrar: GoDaddy.com, LLC"
+  },
+  {
+   "id": "lock",
+   "group": "trust",
+   "title": "Domain is locked against transfers",
+   "why": "A transfer lock stops anyone who gets into your account, or fools your registrar, from quietly moving your domain away.",
+   "weight": 2,
+   "status": "pass",
+   "saw": "The transfer lock is on."
+  },
+  {
+   "id": "thirdparty",
+   "group": "trust",
+   "title": "Other companies' code on your homepage",
+   "why": "Scripts from other companies can read what people type on your page. Not scored, because most sites need some, but you should know who is on the list.",
+   "weight": 0,
+   "status": "info",
+   "saw": "2 companies: Google Tag Manager, Meta (Facebook). Tag managers can load more than this list shows."
   }
  ],
  "fixes": [
   {
+   "title": "Add a DMARC record",
+   "who": "you, at your domain registrar",
+   "time": "about 5 minutes",
+   "text": "Add this TXT record. It sends fake email that uses your domain to junk. If you send a lot of email, start with p=none for two weeks, then switch to quarantine.",
+   "file": "TXT record · name: _dmarc (_dmarc.joesbakery.example)",
+   "code": "v=DMARC1; p=quarantine",
+   "checks": [
+    "dmarc"
+   ],
+   "points": 9
+  },
+  {
    "title": "Add the missing security headers",
-   "text": "Add these headers to every page. The Content-Security-Policy line is a safe starter that can't break your scripts; a stricter one needs testing on your site first.",
+   "who": "your web person",
+   "time": "about 15 minutes",
+   "text": "Add these headers to every page. The Content-Security-Policy line is a safe starter that can't break your scripts. It won't raise your score by itself: a policy that limits scripts needs testing on your site first.",
    "file": ".htaccess",
    "code": "<IfModule mod_headers.c>\n  Header always set Strict-Transport-Security \"max-age=31536000\"\n  Header always set X-Frame-Options \"SAMEORIGIN\"\n  Header always set Content-Security-Policy \"upgrade-insecure-requests; frame-ancestors 'self'\"\n  Header always set Permissions-Policy \"camera=(), microphone=(), geolocation=()\"\n</IfModule>",
    "checks": [
@@ -158,40 +294,48 @@
     "csp",
     "permissions"
    ],
-   "points": 11
+   "points": 8
   },
   {
-   "title": "Add a DMARC record",
-   "text": "Add this TXT record. It sends fake email that uses your domain to junk. If you send a lot of email, start with p=none for two weeks, then switch to quarantine.",
-   "file": "TXT record · name: _dmarc (_dmarc.joesbakery.example)",
-   "code": "v=DMARC1; p=quarantine",
+   "title": "Update WordPress",
+   "who": "you or your web person",
+   "time": "about 30 minutes",
+   "text": "Back up the site, then open Dashboard → Updates and update WordPress, your plugins and your theme. Turn on automatic updates so this stays fixed.",
+   "file": "versions to update",
+   "code": "jQuery 1.12.4 → 3.5.0 or newer",
    "checks": [
-    "dmarc"
+    "software"
    ],
-   "points": 11
+   "points": 5
   },
   {
    "title": "Load every file over https",
+   "who": "your web person",
+   "time": "about 30 minutes",
    "text": "Change these addresses from http:// to https:// in your site's code or page builder:",
    "file": "insecure files",
    "code": "http://www.joesbakery.example/wp-content/uploads/2021/04/cake.jpg",
    "checks": [
     "mixed"
    ],
-   "points": 3
+   "points": 2
   },
   {
    "title": "Flag your cookies",
+   "who": "your web person",
+   "time": "about 30 minutes",
    "text": "Ask whoever set up your site (or check your plugin settings) to add the missing flags. Secure, HttpOnly and SameSite=Lax suit most cookies.",
    "file": "cookies to fix",
    "code": "PHPSESSID: add Secure, SameSite, HttpOnly",
    "checks": [
     "cookies"
    ],
-   "points": 3
+   "points": 2
   },
   {
    "title": "Hide version numbers (and keep that software updated)",
+   "who": "your web person",
+   "time": "about 15 minutes",
    "text": "Remove the WordPress version tag with a security plugin, or add this to your theme's functions.php. Then keep WordPress and its plugins updated.",
    "file": "functions.php",
    "code": "remove_action('wp_head', 'wp_generator');",

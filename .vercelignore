@@ -1,6 +1,9 @@
 tests
 docs
 scripts
+bin
+action.yml
+.github
 server.js
 README.md
 .env*

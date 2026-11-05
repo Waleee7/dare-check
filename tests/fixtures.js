@@ -11,7 +11,7 @@ export const STRONG = {
   'permissions-policy': 'camera=(), microphone=()',
 };
 
-export function site({ host = 'shop.example.com', headers = {}, body = '<!doctype html><title>Shop</title><p>Hi</p>', days = 90, https = {}, http = {}, dns = {} } = {}) {
+export function site({ host = 'shop.example.com', headers = {}, body = '<!doctype html><title>Shop</title><p>Hi</p>', days = 90, https = {}, http = {}, dns = {}, www = {}, rep = {}, rdap = {}, wp = null, dkim = {} } = {}) {
   const domain = host.replace(/^www\./, '');
   return {
     host, domain, fetchedAt: new Date(NOW).toISOString(),
@@ -22,7 +22,12 @@ export function site({ host = 'shop.example.com', headers = {}, body = '<!doctyp
       ...https,
     },
     http: { ok: true, status: 301, url: `http://${host}/`, chain: [{ url: `http://${host}/`, status: 301 }], headers: {}, next: `https://${host}/`, ...http },
-    dns: { ok: true, spf: ['v=spf1 include:_spf.google.com ~all'], dmarc: ['v=DMARC1; p=quarantine'], dmarcAt: domain, mx: ['aspmx.l.google.com'], ...dns },
+    dns: { ok: true, spf: ['v=spf1 include:_spf.google.com ~all'], spfAt: domain, dmarc: ['v=DMARC1; p=quarantine'], dmarcAt: domain, mx: ['aspmx.l.google.com'], ...dns },
+    www: { applies: true, host: `www.${domain}`, ok: true, status: 200, ...www },
+    rep: { cloudflare: 'clean', quad9: 'clean', ...rep },
+    rdap: { ok: true, expires: new Date(NOW + 400 * DAY).toISOString(), created: '2015-03-02T00:00:00.000Z', registrar: 'Namecheap, Inc.', status: ['client transfer prohibited'], ...rdap },
+    wp,
+    dkim: { ok: true, found: ['google'], ...dkim },
   };
 }
 
