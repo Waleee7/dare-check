@@ -16,8 +16,12 @@ const toLocal = (host, opts, cb) => {
 };
 
 let busyHits = 0;
+const dropped = new Set();
 const server = http.createServer((req, res) => {
   const go = (to, code = 301) => { res.writeHead(code, { location: to }); res.end(); };
+  if (req.url === '/drop-once' && !dropped.has(req.url)) { dropped.add(req.url); req.socket.destroy(); return; }
+  if (req.url === '/drop-once') { res.end('back'); return; }
+  if (req.url === '/drop-always') { req.socket.destroy(); return; }
   if (req.url === '/') return go('/two');
   if (req.url === '/two') return go(`http://second.test:${port}/final`, 302);
   if (req.url === '/final') { res.writeHead(200, { 'content-type': 'text/html', 'x-frame-options': 'DENY', 'set-cookie': ['a=1; Secure', 'b=2'] }); return res.end('<p>done</p>'); }
@@ -184,4 +188,16 @@ test('no retry when there is no time left for one', async () => {
   const r = await politeFetch(`http://first.test:${port}/busy`, { ...opts, retryAfter: 5000, deadline: Date.now() + 1000 });
   assert.equal(r.status, 429);
   assert.equal(busyHits, 1);
+});
+
+test('a dropped connection gets one more try, and a site that keeps dropping still fails honestly', async () => {
+  const base = `http://first.test:${port}`;
+  const quick = { ...opts, retryAfter: 5 };
+  const r = await politeFetch(`${base}/drop-once`, quick);
+  assert.equal(r.status, 200);
+  assert.equal(r.body, 'back');
+  await assert.rejects(politeFetch(`${base}/drop-always`, quick), (e) => e.code === 'ECONNRESET');
+  // no time left means no second try
+  dropped.clear();
+  await assert.rejects(politeFetch(`${base}/drop-once`, { ...quick, retryAfter: 60000, deadline: Date.now() + 10000 }), (e) => e.code === 'ECONNRESET');
 });

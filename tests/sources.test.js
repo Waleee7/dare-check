@@ -108,3 +108,23 @@ test('DKIM: tries the provider\'s usual names, recognizes real keys, ignores eve
   const ms = await dkimKeys('example.com', ['x.mail.protection.outlook.com'], { resolveTxt: async (n) => { if (n.startsWith('selector1.')) return [['v=DKIM1; p=abc']]; throw new Error('none'); } });
   assert.deepEqual(ms.found, ['selector1']);
 });
+
+test('domainRecord tries twice after a blip, but takes a real answer the first time', async () => {
+  const replies = (...rs) => { let n = 0; const json = async () => { const r = rs[n++]; if (r instanceof Error) throw r; return r; }; return { json, calls: () => n }; };
+  const good = { status: 200, data: { events: [{ eventAction: 'expiration', eventDate: '2030-01-01T00:00:00Z' }] } };
+  for (const blip of [Object.assign(new Error('reset'), { code: 'ECONNRESET' }), { status: 503 }, { status: 429 }]) {
+    const a = replies(blip, good);
+    const r = await domainRecord('example.com', { json: a.json });
+    assert.equal(r.ok, true);
+    assert.equal(a.calls(), 2);
+  }
+  const twice = replies({ status: 503 }, { status: 503 });
+  assert.equal((await domainRecord('example.com', { json: twice.json })).ok, false);
+  assert.equal(twice.calls(), 2);
+  const missing = replies({ status: 404 });
+  assert.equal((await domainRecord('example.com', { json: missing.json })).error, 'HTTP 404');
+  assert.equal(missing.calls(), 1);
+  const first = replies(good);
+  await domainRecord('example.com', { json: first.json });
+  assert.equal(first.calls(), 1);
+});
