@@ -154,3 +154,11 @@ test('badge colors: only an A or B earns the green', () => {
   for (const g of ['C', 'D', 'F', '?']) assert.doesNotMatch(badgeSvg(g), /fill="#00ff66"/, g);
   assert.match(badgeSvg('<x>'), />\?<\/text>/, 'anything but a grade letter shows as ?');
 });
+
+test('Vercel serves public/ as static files instead of guessing a server entry point', async () => {
+  // without this it picked public/app.js as the server and every request answered 500
+  const { readFileSync } = await import('node:fs');
+  const config = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.equal(config.framework, null);
+  assert.equal(config.outputDirectory, 'public');
+});
